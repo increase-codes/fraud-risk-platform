@@ -5,3 +5,8 @@ __pycache__/
 .env
 .env.*
 *.log
+# Raw data (large / not tracked)
+data/raw/*.csv
+
+# Build artifacts
+*.egg-info/
