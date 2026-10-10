@@ -5,8 +5,11 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
+from fraud_risk.selection_config import SELECTED_THRESHOLD
+
+
 MODEL_PATH = Path("artifacts/fraud_model.joblib")
-THRESHOLD = 0.65
+THRESHOLD = SELECTED_THRESHOLD
 
 
 def load_model():

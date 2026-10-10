@@ -3,20 +3,16 @@
 
 from fraud_risk.data_loader import load_data
 from fraud_risk.data_split import split_data
-from fraud_risk.evaluation import evaluate_model, evaluate_thresholds
+from fraud_risk.evaluation import evaluate_model
 from fraud_risk.model import build_lightgbm_model
-from fraud_risk.selection_config import (
-    SELECTED_THRESHOLD,
-    TEST_MONTH,
-)
+from fraud_risk.selection_config import SELECTED_THRESHOLD, TEST_MONTH
 
 
 def main():
-    """Train on months 1–3 and evaluate once on month 7."""
+    """Train on months 1–3 and evaluate on reserved month 7."""
     df = load_data()
-    train_df, validation_df, test_df = split_data(df)
+    _, _, test_df = split_data(df)
 
-    # Confirm the reserved test partition matches our configuration.
     actual_test_months = set(test_df["month"].unique())
     if actual_test_months != {TEST_MONTH}:
         raise ValueError(
@@ -24,8 +20,7 @@ def main():
             f"found {sorted(actual_test_months)}"
         )
 
-    # After model and threshold selection, combine months 1–3
-    # for final training. Month 7 remains excluded from fitting.
+    # Train on development months only; keep test month untouched.
     development_df = df[df["month"].isin([1, 2, 3])].copy()
 
     feature_columns = [
@@ -42,7 +37,6 @@ def main():
     model = build_lightgbm_model()
     model.fit(X_train, y_train)
 
-    # Report ranking metrics and threshold-dependent metrics.
     metrics = evaluate_model(
         model,
         X_test,
@@ -57,12 +51,11 @@ def main():
     print(f"Test rows: {len(test_df)}")
     print(f"Test fraud rate: {y_test.mean():.4%}")
     print()
-    print(f"PR-AUC:   {metrics['pr_auc']:.4f}")
-    print(f"ROC-AUC:  {metrics['roc_auc']:.4f}")
+    print(f"PR-AUC:    {metrics['pr_auc']:.4f}")
+    print(f"ROC-AUC:   {metrics['roc_auc']:.4f}")
     print(f"Precision: {metrics['precision']:.4f}")
     print(f"Recall:    {metrics['recall']:.4f}")
 
-    # Confusion matrix uses [[TN, FP], [FN, TP]].
     tn, fp, fn, tp = metrics["confusion_matrix"].ravel()
     print()
     print(f"True negatives:  {tn}")
