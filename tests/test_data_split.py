@@ -42,3 +42,10 @@ def test_split_rejects_empty_training_partition():
 
     with pytest.raises(ValueError, match="Training dataset is empty"):
         split_data(df)
+
+def test_split_rejects_missing_expected_month():
+    df = sample_data()
+    df = df[df["month"] != 2]
+
+    with pytest.raises(ValueError, match="Missing expected month"):
+        split_data(df)
