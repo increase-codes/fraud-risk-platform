@@ -10,6 +10,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
 from fraud_risk.preprocessing import build_preprocessor
+from fraud_risk.selection_config import SELECTED_MODEL
 
 
 # --- Logistic Regression configuration ----------------------------------
@@ -52,3 +53,13 @@ def build_lightgbm_model():
         ("preprocessor", build_preprocessor()),
         ("classifier", LGBMClassifier(**LIGHTGBM_CONFIG)),
     ])
+
+def build_selected_model():
+    """Return a fresh pipeline for the configured model."""
+    if SELECTED_MODEL == "logistic":
+        return build_model()
+
+    if SELECTED_MODEL == "lightgbm":
+        return build_lightgbm_model()
+
+    raise ValueError(f"Unsupported selected model: {SELECTED_MODEL}")

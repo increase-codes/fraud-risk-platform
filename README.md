@@ -4,7 +4,7 @@ A Python machine-learning platform for detecting potentially fraudulent transact
 
 ## Project status
 
-The model training workflow, prediction API, and core tests are implemented. The project is still undergoing final validation and is **not yet production-ready**.
+The core training, final evaluation, saved-model prediction, and automated test workflows have been executed successfully. The project remains **not production-ready** pending further validation, operational safeguards, and deployment testing.
 
 ## Features
 
@@ -183,8 +183,7 @@ python -m compileall -q src
 python -m pytest -v
 ```
 
-The current core test suite contains six tests covering temporal data splitting and preprocessing. Passing these tests does not replace API integration, input-validation, or deployment testing.
-
+The current automated test suite contains 11 tests covering API behavior, temporal data splitting, and preprocessing.
 ## Important limitations
 
 * The decision threshold has not been established as optimal for real operational costs.

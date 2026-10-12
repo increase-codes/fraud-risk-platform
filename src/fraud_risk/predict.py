@@ -1,5 +1,7 @@
-﻿"""Load the trained fraud model and generate predictions."""
+﻿
+"""Load the trained fraud model and generate predictions."""
 
+from functools import lru_cache
 from pathlib import Path
 
 import joblib
@@ -12,8 +14,9 @@ MODEL_PATH = Path("artifacts/fraud_model.joblib")
 THRESHOLD = SELECTED_THRESHOLD
 
 
+@lru_cache(maxsize=1)
 def load_model():
-    """Load the saved model artifact."""
+    """Load the saved model artifact once and reuse it."""
     if not MODEL_PATH.exists():
         raise FileNotFoundError(
             f"Model artifact not found: {MODEL_PATH.resolve()}. "
