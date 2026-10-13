@@ -92,6 +92,12 @@ def predict(transaction: Transaction):
     except (ValueError, KeyError) as exc:
         logger.warning("prediction_failed: %s", str(exc))
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception:
+        logger.exception("unexpected_prediction_failure")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal prediction error.",
+        ) from None
 
     fraud_probability = float(result.loc[0, "fraud_probability"])
     fraud_prediction = int(result.loc[0, "fraud_prediction"])

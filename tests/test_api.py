@@ -92,3 +92,22 @@ def test_predict_returns_503_when_model_is_unavailable(monkeypatch):
 
     assert response.status_code == 503
 
+
+    
+def test_predict_handles_unexpected_prediction_failure(monkeypatch):
+    monkeypatch.setattr(api, "load_model", lambda: object())
+
+    def fail_prediction(data, model):
+        raise RuntimeError("Unexpected model failure")
+
+    monkeypatch.setattr(api, "predict_fraud", fail_prediction)
+
+    response = client.post(
+        "/predict",
+        json={"features": valid_features()},
+    )
+
+    assert response.status_code == 500
+
+
+
