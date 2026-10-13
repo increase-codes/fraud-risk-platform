@@ -77,3 +77,18 @@ def test_predict_rejects_unexpected_features():
     assert response.json()["detail"]["unexpected_features"] == [
         "fake_feature"
     ]
+
+    
+def test_predict_returns_503_when_model_is_unavailable(monkeypatch):
+    def fail_to_load_model():
+        raise FileNotFoundError("Model artifact not found")
+
+    monkeypatch.setattr(api, "load_model", fail_to_load_model)
+
+    response = client.post(
+        "/predict",
+        json={"features": valid_features()},
+    )
+
+    assert response.status_code == 503
+
