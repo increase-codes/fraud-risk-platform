@@ -1,0 +1,224 @@
+{
+  "generated_at_utc": "2026-10-13T22:53:44.557793+00:00",
+  "reference_months": [
+    1,
+    2
+  ],
+  "threshold": 0.2,
+  "partitions": {
+    "validation_month_3": {
+      "features_checked": 25,
+      "drifted_features": 3,
+      "drift_detected": true,
+      "features": {
+        "income": {
+          "psi": 0.035529,
+          "drift_detected": false
+        },
+        "name_email_similarity": {
+          "psi": 0.050472,
+          "drift_detected": false
+        },
+        "prev_address_months_count": {
+          "psi": 0.014299,
+          "drift_detected": false
+        },
+        "current_address_months_count": {
+          "psi": 0.033282,
+          "drift_detected": false
+        },
+        "customer_age": {
+          "psi": 0.017049,
+          "drift_detected": false
+        },
+        "days_since_request": {
+          "psi": 0.02966,
+          "drift_detected": false
+        },
+        "intended_balcon_amount": {
+          "psi": 0.010264,
+          "drift_detected": false
+        },
+        "zip_count_4w": {
+          "psi": 0.052322,
+          "drift_detected": false
+        },
+        "velocity_6h": {
+          "psi": 0.118494,
+          "drift_detected": false
+        },
+        "velocity_24h": {
+          "psi": 0.314209,
+          "drift_detected": true
+        },
+        "velocity_4w": {
+          "psi": 3.406166,
+          "drift_detected": true
+        },
+        "bank_branch_count_8w": {
+          "psi": 0.004137,
+          "drift_detected": false
+        },
+        "date_of_birth_distinct_emails_4w": {
+          "psi": 0.108251,
+          "drift_detected": false
+        },
+        "credit_risk_score": {
+          "psi": 0.32228,
+          "drift_detected": true
+        },
+        "email_is_free": {
+          "psi": 0.0,
+          "drift_detected": false
+        },
+        "phone_home_valid": {
+          "psi": 0.0,
+          "drift_detected": false
+        },
+        "phone_mobile_valid": {
+          "psi": 0.0,
+          "drift_detected": false
+        },
+        "bank_months_count": {
+          "psi": 0.037357,
+          "drift_detected": false
+        },
+        "has_other_cards": {
+          "psi": 0.0,
+          "drift_detected": false
+        },
+        "proposed_credit_limit": {
+          "psi": 0.198534,
+          "drift_detected": false
+        },
+        "foreign_request": {
+          "psi": 0.0,
+          "drift_detected": false
+        },
+        "session_length_in_minutes": {
+          "psi": 0.039904,
+          "drift_detected": false
+        },
+        "keep_alive_session": {
+          "psi": 0.0,
+          "drift_detected": false
+        },
+        "device_distinct_emails_8w": {
+          "psi": 0.000582,
+          "drift_detected": false
+        },
+        "device_fraud_count": {
+          "psi": 0.0,
+          "drift_detected": false
+        }
+      }
+    },
+    "test_month_7": {
+      "features_checked": 25,
+      "drifted_features": 6,
+      "drift_detected": true,
+      "features": {
+        "income": {
+          "psi": 0.142546,
+          "drift_detected": false
+        },
+        "name_email_similarity": {
+          "psi": 0.038283,
+          "drift_detected": false
+        },
+        "prev_address_months_count": {
+          "psi": 0.037832,
+          "drift_detected": false
+        },
+        "current_address_months_count": {
+          "psi": 0.115224,
+          "drift_detected": false
+        },
+        "customer_age": {
+          "psi": 0.057887,
+          "drift_detected": false
+        },
+        "days_since_request": {
+          "psi": 0.06321,
+          "drift_detected": false
+        },
+        "intended_balcon_amount": {
+          "psi": 0.044789,
+          "drift_detected": false
+        },
+        "zip_count_4w": {
+          "psi": 0.847147,
+          "drift_detected": true
+        },
+        "velocity_6h": {
+          "psi": 1.509525,
+          "drift_detected": true
+        },
+        "velocity_24h": {
+          "psi": 2.864153,
+          "drift_detected": true
+        },
+        "velocity_4w": {
+          "psi": 4.661829,
+          "drift_detected": true
+        },
+        "bank_branch_count_8w": {
+          "psi": 0.082514,
+          "drift_detected": false
+        },
+        "date_of_birth_distinct_emails_4w": {
+          "psi": 0.74208,
+          "drift_detected": true
+        },
+        "credit_risk_score": {
+          "psi": 0.514128,
+          "drift_detected": true
+        },
+        "email_is_free": {
+          "psi": 0.0,
+          "drift_detected": false
+        },
+        "phone_home_valid": {
+          "psi": 0.0,
+          "drift_detected": false
+        },
+        "phone_mobile_valid": {
+          "psi": 0.0,
+          "drift_detected": false
+        },
+        "bank_months_count": {
+          "psi": 0.018646,
+          "drift_detected": false
+        },
+        "has_other_cards": {
+          "psi": 0.0,
+          "drift_detected": false
+        },
+        "proposed_credit_limit": {
+          "psi": 0.093996,
+          "drift_detected": false
+        },
+        "foreign_request": {
+          "psi": 0.0,
+          "drift_detected": false
+        },
+        "session_length_in_minutes": {
+          "psi": 0.182718,
+          "drift_detected": false
+        },
+        "keep_alive_session": {
+          "psi": 0.0,
+          "drift_detected": false
+        },
+        "device_distinct_emails_8w": {
+          "psi": 0.005531,
+          "drift_detected": false
+        },
+        "device_fraud_count": {
+          "psi": 0.0,
+          "drift_detected": false
+        }
+      }
+    }
+  }
+}

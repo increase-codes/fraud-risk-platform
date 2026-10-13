@@ -1,14 +1,20 @@
 ﻿
-"""FastAPI service for fraud predictions."""
+"""FastAPI service for fraud predictions and monitoring."""
 
+import json
 import logging
 import math
 import time
+from pathlib import Path
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, ConfigDict
 
+from fraud_risk.monitoring import (
+    get_metrics as get_monitoring_metrics,
+    record_prediction,
+)
 from fraud_risk.predict import load_model, predict_fraud
 from fraud_risk.preprocessing import (
     CATEGORICAL_FEATURES,
@@ -21,6 +27,8 @@ logger = logging.getLogger("fraud_risk.api")
 
 app = FastAPI(title="Fraud Risk API", version="1.0.0")
 
+DRIFT_REPORT_FILE = Path("reports") / "drift_report.json"
+
 NUMERIC_INPUTS = set(NUMERIC_FEATURES + SENTINEL_NUMERIC_FEATURES)
 CATEGORICAL_INPUTS = set(CATEGORICAL_FEATURES)
 REQUIRED_FEATURES = NUMERIC_INPUTS | CATEGORICAL_INPUTS
@@ -31,14 +39,74 @@ class Transaction(BaseModel):
     features: dict[str, float | str]
 
 
+def get_drift_report_status() -> dict:
+    """Return a compact summary of the latest saved drift report."""
+    try:
+        report = json.loads(
+            DRIFT_REPORT_FILE.read_text(encoding="utf-8")
+        )
+    except FileNotFoundError:
+        return {"status": "not_available"}
+    except (OSError, json.JSONDecodeError):
+        return {"status": "invalid"}
+
+    if not isinstance(report, dict):
+        return {"status": "invalid"}
+
+    partitions = report.get("partitions")
+    if not isinstance(partitions, dict):
+        return {"status": "invalid"}
+
+    summary = {}
+    for name, details in partitions.items():
+        if not isinstance(details, dict):
+            return {"status": "invalid"}
+
+        summary[name] = {
+            "features_checked": details.get("features_checked"),
+            "drifted_features": details.get("drifted_features"),
+            "drift_detected": details.get("drift_detected"),
+        }
+
+    return {
+        "status": "available",
+        "generated_at_utc": report.get("generated_at_utc"),
+        "threshold": report.get("threshold"),
+        "partitions": summary,
+    }
+
+
+@app.middleware("http")
+async def monitor_prediction_requests(request: Request, call_next):
+    if request.method != "POST" or request.url.path != "/predict":
+        return await call_next(request)
+
+    start_time = time.perf_counter()
+    success = False
+
+    try:
+        response = await call_next(request)
+        success = response.status_code < 400
+        return response
+    finally:
+        latency_ms = (time.perf_counter() - start_time) * 1000
+        record_prediction(success, latency_ms)
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 
+@app.get("/metrics")
+def metrics():
+    result = get_monitoring_metrics()
+    result["drift_report"] = get_drift_report_status()
+    return result
+
+
 @app.post("/predict")
 def predict(transaction: Transaction):
-    start_time = time.perf_counter()
     features = transaction.features
     supplied = set(features)
 
@@ -101,14 +169,12 @@ def predict(transaction: Transaction):
 
     fraud_probability = float(result.loc[0, "fraud_probability"])
     fraud_prediction = int(result.loc[0, "fraud_prediction"])
-    latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
 
     logger.info(
         "prediction_completed fraud_probability=%.6f "
-        "fraud_prediction=%d latency_ms=%.2f",
+        "fraud_prediction=%d",
         fraud_probability,
         fraud_prediction,
-        latency_ms,
     )
 
     return {

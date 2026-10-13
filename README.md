@@ -1,29 +1,36 @@
 # Fraud Risk Platform
 
-A Python machine-learning platform for detecting potentially fraudulent transactions using LightGBM, with a reusable prediction pipeline and a FastAPI service.
+A Python machine-learning platform for detecting potentially fraudulent transactions using LightGBM, with a reusable prediction pipeline, a FastAPI service, automated tests, and initial monitoring and drift-detection capabilities.
 
 ## Project status
 
-The core training, final evaluation, saved-model prediction, and automated test workflows have been executed successfully. The project remains **not production-ready** pending further validation, operational safeguards, and deployment testing.
+The core training, evaluation, saved-model prediction, API testing, Docker packaging workflow, and automated test workflow have been exercised. The project includes initial prediction metrics and historical feature-drift reporting, but remains **not production-ready** pending further validation, operational safeguards, and deployment testing.
 
 ## Features
 
-* LightGBM-based fraud classification.
-* Data loading, validation, preprocessing, and temporal data splitting.
-* Model training and artifact serialization.
-* Final evaluation on a reserved test month.
-* REST API for transaction fraud predictions.
-* Automated tests for data splitting and preprocessing.
+- LightGBM-based fraud classification.
+- Data loading, validation, preprocessing, and chronological data splitting.
+- Model training, artifact serialization, and final test evaluation.
+- Reusable prediction pipeline with a configurable decision threshold.
+- FastAPI prediction service with input validation and error handling.
+- Docker-based application packaging.
+- GitHub Actions continuous integration test workflow.
+- Prediction request counts, success/failure counts, and latency metrics.
+- Numeric feature drift detection using Population Stability Index (PSI).
+- JSON drift reports exposed through the `/metrics` endpoint.
+- Automated tests covering API behavior, data splitting, preprocessing, drift detection, and drift-report generation.
 
 ## Technology stack
 
-* Python 3.13+
-* pandas
-* scikit-learn
-* LightGBM
-* joblib
-* FastAPI and Uvicorn
-* pytest for testing
+- Python 3.13+
+- pandas
+- scikit-learn
+- LightGBM
+- joblib
+- FastAPI and Uvicorn
+- pytest
+- Docker
+- GitHub Actions
 
 ## Repository structure
 
@@ -33,6 +40,9 @@ fraud-risk-platform/
 │   └── raw/
 │       ├── CCFraud_data.csv
 │       └── DATA_PROVENANCE.md
+├── reports/
+│   ├── final_test_results.md
+│   └── drift_report.json
 ├── src/
 │   └── fraud_risk/
 │       ├── api.py
@@ -40,20 +50,32 @@ fraud-risk-platform/
 │       ├── data_loader.py
 │       ├── data_split.py
 │       ├── data_validation.py
+│       ├── drift_detection.py
 │       ├── eda.py
 │       ├── evaluation.py
 │       ├── model.py
+│       ├── monitoring.py
 │       ├── predict.py
 │       ├── preprocessing.py
+│       ├── run_drift_check.py
 │       ├── run_evaluation.py
 │       ├── run_final_evaluation.py
 │       ├── selection_config.py
 │       └── train_final_model.py
 ├── tests/
+│   ├── test_api.py
+│   ├── test_data_split.py
+│   ├── test_drift_detection.py
+│   ├── test_drift_report.py
+│   └── test_preprocessing.py
 ├── artifacts/              # Generated model; not tracked by Git
+├── .github/                # GitHub Actions workflows
+├── Dockerfile
 ├── pyproject.toml
 └── README.md
 ```
+
+The tree shows the main project files; supporting configuration and other repository files may also be present.
 
 ## Installation
 
@@ -91,6 +113,14 @@ The dataset is not included in this repository because redistribution permission
 
 The CSV must contain the columns expected by the project's data-processing and modeling modules, including the fraud target `fraud_bool` and temporal column `month`.
 
+The project uses a chronological split:
+
+- **Training:** months 1 and 2
+- **Validation:** month 3
+- **Test:** month 7
+
+The reserved test partition should remain separate from model selection and threshold tuning.
+
 ## Train the final model
 
 From the repository root, with the virtual environment activated:
@@ -99,7 +129,7 @@ From the repository root, with the virtual environment activated:
 python -m fraud_risk.train_final_model
 ```
 
-The script trains the selected LightGBM pipeline using the configured training and validation partitions, then saves the model to:
+The script trains the selected LightGBM pipeline using the configured development data and saves the model to:
 
 ```text
 artifacts/fraud_model.joblib
@@ -115,23 +145,23 @@ Run:
 python -m fraud_risk.run_final_evaluation
 ```
 
-This workflow fits a model using development months 1–3 and evaluates it on the reserved test month, month 7. Keep the test partition separate from model and threshold selection.
+This workflow trains using development months 1–3 and evaluates against the reserved test month, month 7.
 
-Recorded evaluation baseline:
+### Recorded evaluation baseline
 
-| Metric          | Result |
-| --------------- | -----: |
-| PR-AUC          | 0.1976 |
-| ROC-AUC         | 0.8859 |
-| Precision       | 15.27% |
-| Recall          | 51.05% |
-| True positives  |    729 |
-| False positives |  4,044 |
-| False negatives |    699 |
+| Metric | Result |
+|---|---:|
+| PR-AUC | 0.1976 |
+| ROC-AUC | 0.8859 |
+| Precision | 15.27% |
+| Recall | 51.05% |
+| True positives | 729 |
+| False positives | 4,044 |
+| False negatives | 699 |
 
-These are historical project results and should be reproduced against the intended dataset and code version before being treated as verified release metrics.
+These are historical project results. Reproduce them against the intended dataset and code version before treating them as verified release metrics.
 
-The current decision threshold is 0.65 and remains provisional. The precision and false-positive count indicate that many flagged transactions are legitimate. Threshold selection should reflect operational costs and fraud-review capacity.
+The current decision threshold is **0.65** and remains provisional. The precision and false-positive count indicate that many flagged transactions are legitimate. Threshold selection should reflect operational costs, the relative cost of missed fraud, and available fraud-review capacity.
 
 ## Run the API
 
@@ -157,6 +187,8 @@ Expected response:
 {"status": "ok"}
 ```
 
+This endpoint confirms that the application responds; it does not independently verify model availability or prediction correctness.
+
 ### Interactive API documentation
 
 Visit:
@@ -165,14 +197,45 @@ Visit:
 http://127.0.0.1:8000/docs
 ```
 
-Use the interactive documentation to submit a transaction to `POST /predict`. Supply the complete set of model input features, with numeric and categorical values matching the training schema.
+Use the interactive documentation to submit a transaction to `POST /predict`. Supply the complete set of model input features, with numeric and categorical values matching the expected input schema.
 
 The endpoint returns:
 
-* `fraud_probability`: the model's estimated fraud probability.
-* `fraud_prediction`: `1` if the probability meets or exceeds the configured threshold, otherwise `0`.
+- `fraud_probability`: the model's estimated fraud probability.
+- `fraud_prediction`: `1` if the probability meets or exceeds the configured threshold, otherwise `0`.
 
 The prediction is a model output, not a definitive determination of fraud.
+
+## Monitoring and drift reporting
+
+### Prediction metrics
+
+The `GET /metrics` endpoint reports in-process prediction monitoring metrics, including:
+
+- Total prediction requests.
+- Successful and failed prediction requests.
+- Total, average, and maximum request latency.
+- A summary of the latest saved drift report, when available.
+
+These metrics are held in application memory and reset when the process restarts. They are not yet a persistent, centralized, or multi-worker monitoring solution.
+
+### Run the drift check
+
+From the repository root, run:
+
+```powershell
+python -m fraud_risk.run_drift_check
+```
+
+The workflow compares numeric feature distributions from training months 1–2 against validation month 3 and test month 7. It calculates the Population Stability Index (PSI) and writes the results to:
+
+```text
+reports/drift_report.json
+```
+
+The current investigation threshold is `0.2`. PSI is a heuristic for identifying distribution changes, not proof that model performance has degraded. Thresholds should be interpreted in context and validated for the intended application.
+
+The report currently represents **historical, offline drift analysis**. The API exposes its saved summary; it does not continuously calculate drift from live traffic.
 
 ## Run tests
 
@@ -183,19 +246,4 @@ python -m compileall -q src
 python -m pytest -v
 ```
 
-The current automated test suite contains 11 tests covering API behavior, temporal data splitting, and preprocessing.
-## Important limitations
-
-* The decision threshold has not been established as optimal for real operational costs.
-* Performance has been evaluated on the reserved test month; broader temporal and out-of-distribution validation remains necessary.
-* API input validation, error handling, and operational safeguards require further review.
-* The API is currently a development service; production deployment requires appropriate security, monitoring, logging, and resource management.
-* Model artifacts are generated locally rather than distributed through Git.
-
-## License and data use
-
-Review the applicable dataset license and redistribution conditions before using or sharing the data. Add a project license only after deciding the intended licensing terms for the code.
-
-## Development status
-
-The project is in its integration and finalization stage. The next milestones are documentation verification, stronger API tests, reproducibility checks, continuous integration, and deployment readiness.
+The latest recorded local test run
