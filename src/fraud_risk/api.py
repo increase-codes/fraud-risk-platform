@@ -1,6 +1,9 @@
-﻿"""FastAPI service for fraud predictions."""
+﻿
+"""FastAPI service for fraud predictions."""
 
+import logging
 import math
+import time
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException
@@ -12,6 +15,9 @@ from fraud_risk.preprocessing import (
     NUMERIC_FEATURES,
     SENTINEL_NUMERIC_FEATURES,
 )
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("fraud_risk.api")
 
 app = FastAPI(title="Fraud Risk API", version="1.0.0")
 
@@ -32,6 +38,7 @@ def health():
 
 @app.post("/predict")
 def predict(transaction: Transaction):
+    start_time = time.perf_counter()
     features = transaction.features
     supplied = set(features)
 
@@ -49,11 +56,13 @@ def predict(transaction: Transaction):
 
     for name in NUMERIC_INPUTS:
         value = features[name]
+
         if not isinstance(value, (int, float)) or isinstance(value, bool):
             raise HTTPException(
                 status_code=422,
                 detail=f"Feature '{name}' must be numeric.",
             )
+
         if not math.isfinite(value):
             raise HTTPException(
                 status_code=422,
@@ -70,6 +79,7 @@ def predict(transaction: Transaction):
     try:
         model = load_model()
     except FileNotFoundError as exc:
+        logger.exception("model_artifact_unavailable")
         raise HTTPException(
             status_code=503,
             detail="Model artifact unavailable. Train the model first.",
@@ -80,9 +90,22 @@ def predict(transaction: Transaction):
     try:
         result = predict_fraud(data, model)
     except (ValueError, KeyError) as exc:
+        logger.warning("prediction_failed: %s", str(exc))
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+    fraud_probability = float(result.loc[0, "fraud_probability"])
+    fraud_prediction = int(result.loc[0, "fraud_prediction"])
+    latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
+
+    logger.info(
+        "prediction_completed fraud_probability=%.6f "
+        "fraud_prediction=%d latency_ms=%.2f",
+        fraud_probability,
+        fraud_prediction,
+        latency_ms,
+    )
+
     return {
-        "fraud_probability": float(result.loc[0, "fraud_probability"]),
-        "fraud_prediction": int(result.loc[0, "fraud_prediction"]),
+        "fraud_probability": fraud_probability,
+        "fraud_prediction": fraud_prediction,
     }
